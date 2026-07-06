@@ -57,8 +57,7 @@ with tab2:
             st.success("✅ 7 new leads found! (3 decks, 2 patios, 1 fencing, 1 yard cleanup)")
     with col2:
         st.button("⏰ Set Auto-Refresh (every 6 hrs)")
-
-with tab3:
+        tab3:
     st.header("💰 DJM BuildCost Pro – Competitive Carbon County Pricing")
     st.caption("Aggressive local pricing designed to win market share (15–25% below most competitors)")
 
@@ -122,8 +121,8 @@ with tab3:
     with col3:
         st.metric("✅ Recommended", f"${int(recommended):,}", delta="Best Value")
 
-    st.caption("All prices include 12% buffer for surprises common in older Carbon County homes. Pricing is aggressive to win market share.")
-
+    st.caption("All prices include 12% buffer for surprises common in older Carbon County homes. Pricing is aggressive to win market .")
+        
 with tab4:
     st.header("📸 Instant Branded Proposal")
     services = st.text_area("Services Needed", "Deck rebuild + handrails + paver walkway")
