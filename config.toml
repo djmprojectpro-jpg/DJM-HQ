@@ -1,8 +1,16 @@
 [theme]
 primaryColor = "#FF6200"
-backgroundColor = "#000000"
-secondaryBackgroundColor = "#1E1E1E"
+backgroundColor = "#0F0F0F"
+secondaryBackgroundColor = "#1A1A1A"
 textColor = "#FFFFFF"
+font = "sans serif"
+
+[theme.sidebar]
+backgroundColor = "#1A1A1A"
 
 [server]
 enableCORS = false
+headless = true
+
+[browser]
+gatherUsageStats = false
