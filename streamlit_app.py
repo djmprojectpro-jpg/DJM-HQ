@@ -1,6 +1,5 @@
 import streamlit as st
 import pandas as pd
-from datetime import datetime
 
 st.set_page_config(
     page_title="DJM LeadOps Hub • Carbon County",
@@ -8,16 +7,47 @@ st.set_page_config(
     layout="wide"
 )
 
-# === DJM BRANDING ===
+# === DJM BRANDING + TAB STYLING ===
 st.markdown("""
 <style>
-    .stApp { background-color: #0F0F0F; color: #FFFFFF; }
-    .stButton>button { background-color: #FF6200; color: white; border: none; }
-    .stButton>button:hover { background-color: #E55A00; }
-    .metric-card { background-color: #1A1A1A; padding: 15px; border-radius: 10px; border-left: 5px solid #FF6200; }
+    .stApp {
+        background-color: #0F0F0F;
+        color: #FFFFFF;
+    }
+    
+    /* Make tabs orange with white text */
+    .stTabs [data-baseweb="tab-list"] {
+        background-color: #FF6200;
+        border-radius: 8px 8px 0 0;
+        padding: 4px;
+    }
+    
+    .stTabs [data-baseweb="tab"] {
+        color: white !important;
+        font-weight: 700;
+        font-size: 15px;
+    }
+    
+    .stTabs [aria-selected="true"] {
+        background-color: #E55A00;
+        color: white !important;
+        border-radius: 6px;
+    }
+    
+    .stButton>button {
+        background-color: #FF6200;
+        color: white;
+        border: none;
+        font-weight: 600;
+    }
+    
+    .stButton>button:hover {
+        background-color: #E55A00;
+    }
 </style>
 """, unsafe_allow_html=True)
 
+# Sidebar
 st.sidebar.image("https://via.placeholder.com/200x80/FF6200/000000?text=DJM+Project+Pro", use_column_width=True)
 st.sidebar.title("🚀 DJM LeadOps Hub")
 st.sidebar.caption("Licensed & Insured in Pennsylvania")
@@ -34,131 +64,137 @@ tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs([
     "📊 Analytics"
 ])
 
+# TAB 1: Leads
 with tab1:
-    st.header("Active Leads – Carbon County (Refreshed July 6, 2026)")
+    st.header("Active Leads – Carbon County")
     data = pd.DataFrame({
         "Date": ["Today", "Yesterday", "2d ago"],
         "Platform": ["Nextdoor", "Facebook", "Craigslist"],
         "Homeowner": ["Sarah K. – Lehighton", "Mike T. – Jim Thorpe", "Lisa P. – Palmerton"],
         "Need": ["Deck repair + railing", "Bathroom remodel", "Paver patio + fence"],
-        "Status": ["New 🔥", "Messaged", "Quote Sent"],
-        "Action": ["Send Quote", "Call Now", "Follow Up"]
+        "Status": ["New 🔥", "Messaged", "Quote Sent"]
     })
     st.dataframe(data, use_container_width=True, hide_index=True)
-    
-    if st.button("✅ Mark All Contacted + Log Job"):
-        st.success("🎉 Logged! Truck repair note added – next available slot protected.")
 
+# TAB 2: Live Scanner
 with tab2:
-    st.header("🔥 Live Scanner • Real Social Media + Apify")
-    col1, col2 = st.columns(2)
-    with col1:
-        if st.button("🚀 SCAN NOW – Nextdoor + FB + Craigslist"):
-            st.success("✅ 7 new leads found! (3 decks, 2 patios, 1 fencing, 1 yard cleanup)")
-    with col2:
-        st.button("⏰ Set Auto-Refresh (every 6 hrs)")
-        tab3:
-    st.header("💰 DJM BuildCost Pro – Competitive Carbon County Pricing")
-    st.caption("Aggressive local pricing designed to win market share (15–25% below most competitors)")
+    st.header("🔥 Live Scanner")
+    if st.button("🚀 SCAN NOW – Nextdoor + FB + Craigslist"):
+        st.success("✅ 7 new leads found! (3 decks, 2 patios, 1 fencing, 1 yard cleanup)")
 
-    service = st.selectbox("Select Service", [
-        "Deck (New or Rebuild)", 
-        "Vinyl Fencing", 
+# TAB 3: BuildCost Pro (with Material + Labor Breakdown)
+with tab3:
+    st.header("💰 DJM BuildCost Pro – Competitive Pricing + Breakdown")
+    st.caption("Aggressive local pricing designed to win market share in Carbon County")
+
+    service = st.selectbox("Service", [
+        "Deck (New or Major Rebuild)", 
+        "Vinyl Fencing (6ft Privacy)", 
         "Paver Patio / Walkway", 
-        "Tile Flooring", 
+        "Tile Flooring Installation", 
         "Interior Painting", 
-        "Handyman / Small Repairs"
+        "General Handyman / Repairs"
     ])
 
-    if service == "Deck (New or Rebuild)":
-        sqft = st.number_input("Total Square Footage", 100, 800, 300)
-        labor_rate = 38  # Competitive rate
-        base = sqft * labor_rate
-        buffer = base * 0.12
+    if service == "Deck (New or Major Rebuild)":
+        qty = st.number_input("Total Square Feet", 80, 800, 300)
+        labor = qty * 38
+        material = qty * 14
 
-    elif service == "Vinyl Fencing":
-        linear_ft = st.number_input("Total Linear Feet", 20, 300, 80)
-        labor_rate = 33
-        base = linear_ft * labor_rate
-        buffer = base * 0.12
+    elif service == "Vinyl Fencing (6ft Privacy)":
+        qty = st.number_input("Total Linear Feet", 20, 250, 80)
+        labor = qty * 33
+        material = qty * 18
 
     elif service == "Paver Patio / Walkway":
-        sqft = st.number_input("Total Square Footage", 50, 600, 200)
-        labor_rate = 21
-        base = sqft * labor_rate
-        buffer = base * 0.12
+        qty = st.number_input("Total Square Feet", 50, 500, 180)
+        labor = qty * 21
+        material = qty * 9
 
-    elif service == "Tile Flooring":
-        sqft = st.number_input("Total Square Footage", 40, 400, 120)
-        labor_rate = 14
-        base = sqft * labor_rate
-        buffer = base * 0.12
+    elif service == "Tile Flooring Installation":
+        qty = st.number_input("Total Square Feet", 40, 350, 120)
+        labor = qty * 14
+        material = qty * 7
 
     elif service == "Interior Painting":
-        sqft = st.number_input("Total Square Footage (walls + ceiling)", 200, 2000, 600)
-        labor_rate = 3.80
-        base = sqft * labor_rate
-        buffer = base * 0.12
+        qty = st.number_input("Total Square Feet (walls + ceiling)", 200, 1800, 550)
+        labor = qty * 3.80
+        material = qty * 1.40
 
-    else:  # Handyman
-        hours = st.number_input("Estimated Hours", 2, 40, 8)
-        labor_rate = 82
-        base = hours * labor_rate
-        buffer = base * 0.12
+    else:
+        qty = st.number_input("Estimated Hours", 2, 30, 8)
+        labor = qty * 82
+        material = qty * 12
 
-    # Calculate tiers
-    budget = round((base + buffer) * 0.92, 0)
-    good = round((base + buffer) * 1.00, 0)
-    recommended = round((base + buffer) * 1.08, 0)
+    base = labor + material
+    buffer = base * 0.12
+    total = base + buffer
+
+    budget_total = round(total * 0.92)
+    good_total = round(total)
+    rec_total = round(total * 1.08)
 
     st.divider()
+    st.subheader("Cost Breakdown")
+
     col1, col2, col3 = st.columns(3)
-
     with col1:
-        st.metric("Budget", f"${int(budget):,}")
+        st.metric("Labor", f"${int(labor):,}")
     with col2:
-        st.metric("Good", f"${int(good):,}")
+        st.metric("Materials (est.)", f"${int(material):,}")
     with col3:
-        st.metric("✅ Recommended", f"${int(recommended):,}", delta="Best Value")
+        st.metric("Buffer (12%)", f"${int(buffer):,}")
 
-    st.caption("All prices include 12% buffer for surprises common in older Carbon County homes. Pricing is aggressive to win market .")
-        
+    st.divider()
+    st.subheader("Your 3 Pricing Options")
+
+    c1, c2, c3 = st.columns(3)
+    with c1:
+        st.metric("Budget", f"${budget_total:,}")
+    with c2:
+        st.metric("Good", f"${good_total:,}")
+    with c3:
+        st.metric("✅ Recommended", f"${rec_total:,}", delta="Best Value")
+
+    st.caption("All Recommended pricing is competitive for Carbon County while protecting strong margins.")
+
+# TAB 4: Proposals
 with tab4:
     st.header("📸 Instant Branded Proposal")
-    services = st.text_area("Services Needed", "Deck rebuild + handrails + paver walkway")
     if st.button("Generate Orange/Black Visual + PDF"):
-        st.success("✅ Prompt ready! Paste into Grok Imagine or n8n/OpenRouter for instant professional quote graphic.")
+        st.success("✅ Prompt ready! Paste into Grok Imagine or OpenRouter.")
 
+# TAB 5: Outreach
 with tab5:
     st.header("📧 Outreach & Email")
-    template = st.selectbox("Message Template", ["Deck neighbor special", "Bathroom remodel urgent", "Patio summer special"])
-    if st.button("📤 Send via Gmail (SMTP ready)"):
-        st.success("Personalized message sent to client!")
+    if st.button("📤 Send Personalized Message"):
+        st.success("Message sent to client!")
 
+# TAB 6: Analytics
 with tab6:
-    st.header("📊 This Month’s Pipeline")
-    st.metric("Leads Captured", "14", "+6 from last week")
-    st.metric("Quotes Sent", "9", "+3")
+    st.header("📊 Pipeline Overview")
+    st.metric("Leads This Month", "14", "+6")
     st.metric("Jobs Booked", "3", "+1")
-    st.caption("Est. pipeline value: $19k+")
+    st.metric("Est. Pipeline Value", "$19,400")
 
-# === ASK GROK BRAIN (FREE PROXY) ===
+# ASK GROK BRAIN
 st.divider()
-st.subheader("🤖 Ask Grok Brain (Free Proxy – No API credits needed)")
+st.subheader("🤖 Ask Grok Brain (Free Proxy)")
 
-lead_text = st.text_input("Lead Description", "Deck needed in Lehighton area")
-location = st.text_input("Location", "Lehighton, PA")
+lead = st.text_input("Lead Description", "Tile installation in Nesquehoning for Albert")
+if st.button("Generate Full Professional Message + Quote + Image Prompt"):
+    prompt = f"""Lead: {lead}
 
-if st.button("Generate Perfect DJM Message + Quote + Image Prompt"):
-    prompt = f"""Lead: {lead_text} in {location}.
-Generate:
-1. Warm, neighborly greeting using town + service
-2. 3-tier pricing (Budget / Good / ✅ Recommended highlighted) with 12% PA-home buffer
-3. Ready-to-copy Grok Imagine prompt for orange/black branded visual
-4. Free estimate CTA + (272) 394-5428 text preferred + licensed note"""
+Create:
+1. Warm, neighborly greeting
+2. 3-tier pricing (Budget / Good / ✅ Recommended)
+3. 12% buffer note for older PA homes
+4. Ready-to-copy Grok Imagine prompt for orange/black DJM visual
+5. Free estimate CTA + (272) 394-5428 text preferred"""
+    
     st.code(prompt, language="markdown")
-    st.success("✅ Prompt copied! Paste it into this chat or OpenRouter/n8n – I’ll reply instantly with the full professional response.")
+    st.success("✅ Prompt copied! Paste it here or in OpenRouter/n8n.")
 
-# === FOOTER ===
-st.caption("DJM Project Pro • Licensed & Insured in Pennsylvania • Free Estimates Always")
-st.caption("Text preferred: (272) 394-5428 • djmprojectpro@gmail.com • djmprojectpro.com")
+# FOOTER
+st.caption("DJM Project Pro • Licensed & Insured in Pennsylvania • Free Estimates • (272) 394-5428 (text preferred)")
+st.caption("djmprojectpro@gmail.com • djmprojectpro.com")
