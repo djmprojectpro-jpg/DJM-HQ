@@ -59,12 +59,70 @@ with tab2:
         st.button("⏰ Set Auto-Refresh (every 6 hrs)")
 
 with tab3:
-    st.header("💰 DJM BuildCost Pro Estimator")
-    sqft = st.number_input("Square Footage", 200, 2000, 450)
-    option = st.selectbox("Pricing Tier", ["Budget 🟡", "✅ Recommended (Most Chosen)", "Premium 🔵"])
-    st.write(f"**{option} Quote: $8,250** (includes 12% PA-home buffer)")
-    if st.button("📧 Email Full Proposal with Visuals"):
-        st.success("Quote + branded image prompt generated!")
+    st.header("💰 DJM BuildCost Pro – Competitive Carbon County Pricing")
+    st.caption("Aggressive local pricing designed to win market share (15–25% below most competitors)")
+
+    service = st.selectbox("Select Service", [
+        "Deck (New or Rebuild)", 
+        "Vinyl Fencing", 
+        "Paver Patio / Walkway", 
+        "Tile Flooring", 
+        "Interior Painting", 
+        "Handyman / Small Repairs"
+    ])
+
+    if service == "Deck (New or Rebuild)":
+        sqft = st.number_input("Total Square Footage", 100, 800, 300)
+        labor_rate = 38  # Competitive rate
+        base = sqft * labor_rate
+        buffer = base * 0.12
+
+    elif service == "Vinyl Fencing":
+        linear_ft = st.number_input("Total Linear Feet", 20, 300, 80)
+        labor_rate = 33
+        base = linear_ft * labor_rate
+        buffer = base * 0.12
+
+    elif service == "Paver Patio / Walkway":
+        sqft = st.number_input("Total Square Footage", 50, 600, 200)
+        labor_rate = 21
+        base = sqft * labor_rate
+        buffer = base * 0.12
+
+    elif service == "Tile Flooring":
+        sqft = st.number_input("Total Square Footage", 40, 400, 120)
+        labor_rate = 14
+        base = sqft * labor_rate
+        buffer = base * 0.12
+
+    elif service == "Interior Painting":
+        sqft = st.number_input("Total Square Footage (walls + ceiling)", 200, 2000, 600)
+        labor_rate = 3.80
+        base = sqft * labor_rate
+        buffer = base * 0.12
+
+    else:  # Handyman
+        hours = st.number_input("Estimated Hours", 2, 40, 8)
+        labor_rate = 82
+        base = hours * labor_rate
+        buffer = base * 0.12
+
+    # Calculate tiers
+    budget = round((base + buffer) * 0.92, 0)
+    good = round((base + buffer) * 1.00, 0)
+    recommended = round((base + buffer) * 1.08, 0)
+
+    st.divider()
+    col1, col2, col3 = st.columns(3)
+
+    with col1:
+        st.metric("Budget", f"${int(budget):,}")
+    with col2:
+        st.metric("Good", f"${int(good):,}")
+    with col3:
+        st.metric("✅ Recommended", f"${int(recommended):,}", delta="Best Value")
+
+    st.caption("All prices include 12% buffer for surprises common in older Carbon County homes. Pricing is aggressive to win market share.")
 
 with tab4:
     st.header("📸 Instant Branded Proposal")
