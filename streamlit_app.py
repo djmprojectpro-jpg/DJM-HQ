@@ -55,13 +55,14 @@ st.sidebar.caption("Free Estimates • (272) 394-5428 (text preferred)")
 st.sidebar.caption("djmprojectpro@gmail.com • djmprojectpro.com")
 
 # === TABS ===
-tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs([
+tab1, tab2, tab3, tab4, tab5, tab6, tab7 = st.tabs([
     "📍 Leads", 
     "🔥 Live Scanner", 
     "💰 BuildCost Pro", 
     "📸 Proposals", 
     "📧 Outreach", 
     "📊 Analytics"
+    "🖼️Quote Image Prompt Generator"
 ])
 
 # TAB 1: Leads
@@ -176,7 +177,121 @@ with tab6:
     st.metric("Leads This Month", "14", "+6")
     st.metric("Jobs Booked", "3", "+1")
     st.metric("Est. Pipeline Value", "$19,400")
+# TAB 7: Quote Image Prompt Generator 
+with tab7:
+    st.header("🎨 Quote Image Prompt Generator")
+    st.caption("Generate ready-to-use Grok Imagine prompts with DJM branding in seconds")
 
+    col1, col2 = st.columns(2)
+
+    with col1:
+        service_type = st.selectbox("Service Type", [
+            "Deck (New or Rebuild)", 
+            "Vinyl Fencing (6ft Privacy)", 
+            "Paver Patio / Walkway", 
+            "Tile Flooring Installation", 
+            "Interior Painting"
+        ])
+        client_name = st.text_input("Client Name", value="Albert")
+        location = st.text_input("Location", value="Nesquehoning, PA")
+        size = st.text_input("Size / Quantity", value="85 sq ft")
+
+    with col2:
+        budget = st.text_input("Budget Price", value="$1,250")
+        good = st.text_input("Good Price", value="$1,680")
+        recommended = st.text_input("Recommended Price", value="$1,850")
+
+    if st.button("🚀 Generate Prompt", use_container_width=True):
+        
+        # Generate the correct prompt based on service
+        if service_type == "Deck (New or Rebuild)":
+            prompt_text = f"""Professional deck quote graphic for DJM Project Pro. Glowing orange circular logo on charcoal black background, clean modern contractor style, cinematic lighting.
+
+Three pricing tiers side by side (Budget / Good / ✅ Recommended highlighted).
+
+Job details:
+- Service: Deck building or major rebuild
+- Location: {location}
+- Size: {size}
+- Pricing:
+  - Budget: {budget}
+  - Good: {good}
+  - ✅ Recommended: {recommended}
+
+Clean, trustworthy, high-end contractor feel. Easy to read text. Include free estimate CTA and (272) 394-5428."""
+
+        elif service_type == "Vinyl Fencing (6ft Privacy)":
+            prompt_text = f"""Professional fencing quote graphic for DJM Project Pro. Glowing orange circular logo on charcoal black background, modern contractor aesthetic, cinematic lighting.
+
+Three clear pricing tiers (Budget / Good / ✅ Recommended highlighted).
+
+Job details:
+- Service: Vinyl privacy fencing (6ft)
+- Location: {location}
+- Length: {size}
+- Pricing:
+  - Budget: {budget}
+  - Good: {good}
+  - ✅ Recommended: {recommended}
+
+Clean layout, easy to read, professional and trustworthy feel."""
+
+        elif service_type == "Paver Patio / Walkway":
+            prompt_text = f"""Professional hardscaping quote graphic for DJM Project Pro. Glowing orange circular logo on charcoal black background, modern outdoor living style, cinematic lighting.
+
+Three pricing tiers clearly displayed (Budget / Good / ✅ Recommended).
+
+Job details:
+- Service: Paver patio or walkway
+- Location: {location}
+- Size: {size}
+- Pricing:
+  - Budget: {budget}
+  - Good: {good}
+  - ✅ Recommended: {recommended}
+
+Clean, premium contractor look. Easy to read."""
+
+        elif service_type == "Tile Flooring Installation":
+            prompt_text = f"""Professional tile installation quote graphic for DJM Project Pro. Glowing orange circular logo on charcoal black background, clean modern interior feel, cinematic lighting.
+
+Three pricing options shown clearly (Budget / Good / ✅ Recommended highlighted).
+
+Job details:
+- Service: Tile flooring installation
+- Location: {location}
+- Size: {size}
+- Pricing:
+  - Budget: {budget}
+  - Good: {good}
+  - ✅ Recommended: {recommended}
+
+Professional, trustworthy contractor style. Clean text layout."""
+
+        else:  # Interior Painting
+            prompt_text = f"""Professional painting quote graphic for DJM Project Pro. Glowing orange circular logo on charcoal black background, clean modern interior style, cinematic lighting.
+
+Three pricing tiers displayed (Budget / Good / ✅ Recommended).
+
+Job details:
+- Service: Interior painting
+- Location: {location}
+- Size: {size}
+- Pricing:
+  - Budget: {budget}
+  - Good: {good}
+  - ✅ Recommended: {recommended}
+
+Easy to read, professional contractor aesthetic."""
+
+        # Display the prompt
+        st.code(prompt_text, language="markdown")
+
+        # Copy button
+        if st.button("📋 Copy Prompt to Clipboard", use_container_width=True):
+            st.toast("✅ Prompt copied to clipboard!", icon="📋")
+            # This makes the prompt easy to copy manually as well
+            st.session_state.last_prompt = prompt_text
 # ASK GROK BRAIN
 st.divider()
 st.subheader("🤖 Ask Grok Brain (Free Proxy)")
