@@ -62,8 +62,7 @@ tab1, tab2, tab3, tab4, tab5, tab6, tab7 = st.tabs([
     "📸 Proposals", 
     "📧 Outreach", 
     "📊 Analytics"
-    "🖼️Quote Image Prompt Generator"
-])
+    "🖼️Quote Image Prompt Generator"])
 
 # TAB 1: Leads
 with tab1:
