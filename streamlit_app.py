@@ -55,14 +55,14 @@ st.sidebar.caption("Free Estimates • (272) 394-5428 (text preferred)")
 st.sidebar.caption("djmprojectpro@gmail.com • djmprojectpro.com")
 
 # === TABS ===
-tab1, tab2, tab3, tab4, tab5, tab6, tab7 = st.tabs([
+tab1, tab2, tab3, tab4, tab5, tab6, tab7 = st.tabs(["🎨 Prompt Generator"])[0]   # New 7th tab
+
     "📍 Leads", 
     "🔥 Live Scanner", 
     "💰 BuildCost Pro", 
     "📸 Proposals", 
     "📧 Outreach", 
     "📊 Analytics"
-    "🖼️Quote Image Prompt Generator"])
 
 # TAB 1: Leads
 with tab1:
