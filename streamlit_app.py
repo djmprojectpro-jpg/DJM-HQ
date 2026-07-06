@@ -15,7 +15,7 @@ st.markdown("""
         color: #FFFFFF;
     }
     
-    /* Make tabs orange with white text */
+    /* Orange tabs with white text */
     .stTabs [data-baseweb="tab-list"] {
         background-color: #FF6200;
         border-radius: 8px 8px 0 0;
@@ -55,14 +55,15 @@ st.sidebar.caption("Free Estimates • (272) 394-5428 (text preferred)")
 st.sidebar.caption("djmprojectpro@gmail.com • djmprojectpro.com")
 
 # === TABS ===
-tab1, tab2, tab3, tab4, tab5, tab6, tab7 = st.tabs(["🎨 Prompt Generator"])[0]   # New 7th tab
-
+tab1, tab2, tab3, tab4, tab5, tab6, tab7 = st.tabs([
     "📍 Leads", 
     "🔥 Live Scanner", 
     "💰 BuildCost Pro", 
     "📸 Proposals", 
     "📧 Outreach", 
-    "📊 Analytics"
+    "📊 Analytics",
+    "🎨 Prompt Generator"
+])
 
 # TAB 1: Leads
 with tab1:
@@ -176,7 +177,8 @@ with tab6:
     st.metric("Leads This Month", "14", "+6")
     st.metric("Jobs Booked", "3", "+1")
     st.metric("Est. Pipeline Value", "$19,400")
-# TAB 7: Quote Image Prompt Generator 
+
+# TAB 7: Prompt Generator (NEW)
 with tab7:
     st.header("🎨 Quote Image Prompt Generator")
     st.caption("Generate ready-to-use Grok Imagine prompts with DJM branding in seconds")
@@ -202,7 +204,6 @@ with tab7:
 
     if st.button("🚀 Generate Prompt", use_container_width=True):
         
-        # Generate the correct prompt based on service
         if service_type == "Deck (New or Rebuild)":
             prompt_text = f"""Professional deck quote graphic for DJM Project Pro. Glowing orange circular logo on charcoal black background, clean modern contractor style, cinematic lighting.
 
@@ -283,15 +284,13 @@ Job details:
 
 Easy to read, professional contractor aesthetic."""
 
-        # Display the prompt
         st.code(prompt_text, language="markdown")
 
-        # Copy button
         if st.button("📋 Copy Prompt to Clipboard", use_container_width=True):
             st.toast("✅ Prompt copied to clipboard!", icon="📋")
-            # This makes the prompt easy to copy manually as well
             st.session_state.last_prompt = prompt_text
-# ASK GROK BRAIN
+
+# ASK GROK BRAIN (at the bottom)
 st.divider()
 st.subheader("🤖 Ask Grok Brain (Free Proxy)")
 
@@ -300,8 +299,8 @@ if st.button("Generate Full Professional Message + Quote + Image Prompt"):
     prompt = f"""Lead: {lead}
 
 Create:
-1. Warm, neighborly greeting
-2. 3-tier pricing (Budget / Good / ✅ Recommended)
+1. Warm, neighborly greeting using town + service
+2. 3-tier pricing (Budget / Good / ✅ Recommended highlighted)
 3. 12% buffer note for older PA homes
 4. Ready-to-copy Grok Imagine prompt for orange/black DJM visual
 5. Free estimate CTA + (272) 394-5428 text preferred"""
