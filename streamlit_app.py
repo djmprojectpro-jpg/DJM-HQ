@@ -30,31 +30,39 @@ st.sidebar.caption("djmprojectpro@gmail.com • djmprojectpro.com")
 
 # === Google Sheets Connection ===
 @st.cache_resource
-def connect_to_sheets():
-    scope = ["https://www.googleapis.com/auth/spreadsheets", "https://www.googleapis.com/auth/drive"]
-    creds = Credentials.from_service_account_info(st.secrets["gcp_service_account"], scopes=scope)
-    client = gspread.authorize(creds)
-    return client
+def get_gspread_client():
+    scope = [
+        "https://www.googleapis.com/auth/spreadsheets",
+        "https://www.googleapis.com/auth/drive"
+    ]
+    creds = Credentials.from_service_account_info(
+        st.secrets["gcp_service_account"], scopes=scope
+    )
+    return gspread.authorize(creds)
 
-client = connect_to_sheets()
+client = get_gspread_client()
 sheet = client.open("DJM LeadOps Hub - Data")
 
-def load_data(sheet_name):
+def load_sheet(sheet_name):
     try:
-        worksheet = sheet.worksheet(sheet_name)
-        data = worksheet.get_all_records()
+        ws = sheet.worksheet(sheet_name)
+        data = ws.get_all_records()
         return pd.DataFrame(data)
-    except:
+    except Exception as e:
+        st.error(f"Error loading {sheet_name}: {e}")
         return pd.DataFrame()
 
-def save_data(sheet_name, df):
-    worksheet = sheet.worksheet(sheet_name)
-    worksheet.clear()
-    worksheet.update([df.columns.values.tolist()] + df.values.tolist())
+def save_sheet(sheet_name, df):
+    try:
+        ws = sheet.worksheet(sheet_name)
+        ws.clear()
+        ws.update([df.columns.values.tolist()] + df.values.tolist())
+    except Exception as e:
+        st.error(f"Error saving to {sheet_name}: {e}")
 
-# Load data from Google Sheets
-leads_df = load_data("Leads")
-jobs_df = load_data("Jobs")
+# Load data
+leads_df = load_sheet("Leads")
+jobs_df = load_sheet("Jobs")
 
 # === TABS ===
 tab1, tab2, tab3, tab4, tab5, tab6, tab7, tab8, tab9 = st.tabs([
@@ -81,17 +89,21 @@ with tab1:
             if st.form_submit_button("Add Lead"):
                 new_row = pd.DataFrame([{
                     "Date": datetime.now().strftime("%Y-%m-%d"),
-                    "Platform": platform, "Client": client_name, "Location": location,
-                    "Phone": phone, "Need": need, "Status": status
+                    "Platform": platform,
+                    "Client": client_name,
+                    "Location": location,
+                    "Phone": phone,
+                    "Need": need,
+                    "Status": status
                 }])
                 leads_df = pd.concat([leads_df, new_row], ignore_index=True)
-                save_data("Leads", leads_df)
-                st.success("Lead added and saved!")
+                save_sheet("Leads", leads_df)
+                st.success("Lead saved to Google Sheets!")
                 st.rerun()
 
     st.dataframe(leads_df, use_container_width=True, hide_index=True)
 
-# Other tabs (simplified for stability)
+# Other tabs
 with tab2: st.header("🔥 Live Scanner")
 with tab3: st.header("💰 BuildCost Pro")
 with tab4: st.header("📸 Proposals")
