@@ -2,3 +2,6 @@ streamlit
 pandas
 requests
 reportlab
+git add requirements.txt
+git commit -m "Add reportlab for PDF generation"
+git push
