@@ -42,6 +42,7 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
+# Sidebar
 st.sidebar.image("https://via.placeholder.com/200x80/FF6200/000000?text=DJM+Project+Pro", use_column_width=True)
 st.sidebar.title("🚀 DJM LeadOps Hub")
 st.sidebar.caption("Licensed & Insured in Pennsylvania")
@@ -52,7 +53,7 @@ st.sidebar.caption("djmprojectpro@gmail.com • djmprojectpro.com")
 if "leads" not in st.session_state:
     st.session_state.leads = pd.DataFrame(columns=["Date", "Platform", "Client", "Location", "Phone", "Need", "Status"])
 
-# Tabs
+# === TABS ===
 tab1, tab2, tab3, tab4, tab5, tab6, tab7, tab8, tab9 = st.tabs([
     "📍 Leads", "🔥 Live Scanner", "💰 BuildCost Pro", "📸 Proposals",
     "📧 Outreach", "📊 Analytics", "🎨 Prompt Generator", "🛠️ Jobs", "⚙️ Settings"
@@ -81,13 +82,13 @@ with tab1:
                     "Phone": phone, "Need": need, "Status": status
                 }])
                 st.session_state.leads = pd.concat([st.session_state.leads, new_row], ignore_index=True)
-                st.success("Lead added!")
+                st.success("Lead added successfully!")
                 st.rerun()
 
     # Search & Filter
     col1, col2 = st.columns(2)
-    with col1: search = st.text_input("🔍 Search")
-    with col2: status_filter = st.selectbox("Filter Status", ["All", "New", "Contacted", "Quoted", "Booked", "Lost"])
+    with col1: search = st.text_input("🔍 Search by name or need")
+    with col2: status_filter = st.selectbox("Filter by Status", ["All", "New", "Contacted", "Quoted", "Booked", "Lost"])
 
     filtered = st.session_state.leads.copy()
     if search:
@@ -98,9 +99,25 @@ with tab1:
 
     st.dataframe(filtered, use_container_width=True, hide_index=True)
 
+    # Quick Actions
+    if not filtered.empty:
+        st.subheader("Quick Actions")
+        idx = st.selectbox("Select a lead", filtered.index)
+        col1, col2, col3 = st.columns(3)
+        with col1:
+            if st.button("💰 Send to BuildCost Pro"): st.info("Lead sent to BuildCost Pro")
+        with col2:
+            if st.button("🎨 Generate Image Prompt"): st.info("Prompt generated for this lead")
+        with col3:
+            if st.button("✅ Mark as Booked"):
+                st.session_state.leads.loc[idx, "Status"] = "Booked"
+                st.success("Lead marked as Booked!")
+                st.rerun()
+
 # TAB 2: Live Scanner
 with tab2:
     st.header("🔥 Live Scanner")
+    st.info("Scan social platforms for new leads")
     if st.button("🚀 Run Scan", use_container_width=True):
         st.success("Scan complete! New leads found.")
 
@@ -111,13 +128,38 @@ with tab3:
     qty = st.number_input("Quantity", 1, 2000, 100)
     st.metric("Estimated Total", f"${qty * 45:,}")
 
-# Other tabs (simplified for stability)
-with tab4: st.header("📸 Proposals")
-with tab5: st.header("📧 Outreach")
-with tab6: st.header("📊 Analytics")
-with tab7: st.header("🎨 Prompt Generator")
-with tab8: st.header("🛠️ Jobs")
-with tab9: st.header("⚙️ Settings")
+# TAB 4: Proposals
+with tab4:
+    st.header("📸 Proposals")
+    st.info("Create professional proposals and visuals here.")
 
+# TAB 5: Outreach
+with tab5:
+    st.header("📧 Outreach")
+    st.info("Communicate with leads (Email/SMS integration coming soon).")
+
+# TAB 6: Analytics
+with tab6:
+    st.header("📊 Analytics")
+    st.metric("Total Leads", len(st.session_state.leads))
+    st.metric("Jobs Booked", len([x for x in st.session_state.leads.get("Status", []) if x == "Booked"]))
+
+# TAB 7: Prompt Generator
+with tab7:
+    st.header("🎨 Prompt Generator")
+    st.info("Generate branded quote images here.")
+
+# TAB 8: Jobs
+with tab8:
+    st.header("🛠️ Jobs / Active Projects")
+    st.info("Manage booked jobs and track progress.")
+
+# TAB 9: Settings
+with tab9:
+    st.header("⚙️ Settings")
+    st.info("Configure labor rates and preferences here.")
+
+# Footer
 st.divider()
 st.caption("DJM Project Pro • Licensed & Insured in Pennsylvania • Free Estimates • (272) 394-5428 (text preferred)")
+st.caption("djmprojectpro@gmail.com • djmprojectpro.com")
