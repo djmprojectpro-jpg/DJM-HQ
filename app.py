@@ -87,8 +87,8 @@ with tab1:
 
     # Search & Filter
     col1, col2 = st.columns(2)
-    with col1: search = st.text_input("🔍 Search by name or need")
-    with col2: status_filter = st.selectbox("Filter by Status", ["All", "New", "Contacted", "Quoted", "Booked", "Lost"])
+    with col1: search = st.text_input("🔍 Search")
+    with col2: status_filter = st.selectbox("Filter Status", ["All", "New", "Contacted", "Quoted", "Booked", "Lost"])
 
     filtered = st.session_state.leads.copy()
     if search:
@@ -102,22 +102,21 @@ with tab1:
     # Quick Actions
     if not filtered.empty:
         st.subheader("Quick Actions")
-        idx = st.selectbox("Select a lead", filtered.index)
+        idx = st.selectbox("Select Lead", filtered.index)
         col1, col2, col3 = st.columns(3)
         with col1:
             if st.button("💰 Send to BuildCost Pro"): st.info("Lead sent to BuildCost Pro")
         with col2:
-            if st.button("🎨 Generate Image Prompt"): st.info("Prompt generated for this lead")
+            if st.button("🎨 Generate Image Prompt"): st.info("Prompt generated")
         with col3:
             if st.button("✅ Mark as Booked"):
                 st.session_state.leads.loc[idx, "Status"] = "Booked"
-                st.success("Lead marked as Booked!")
+                st.success("Marked as Booked!")
                 st.rerun()
 
 # TAB 2: Live Scanner
 with tab2:
     st.header("🔥 Live Scanner")
-    st.info("Scan social platforms for new leads")
     if st.button("🚀 Run Scan", use_container_width=True):
         st.success("Scan complete! New leads found.")
 
@@ -136,13 +135,12 @@ with tab4:
 # TAB 5: Outreach
 with tab5:
     st.header("📧 Outreach")
-    st.info("Communicate with leads (Email/SMS integration coming soon).")
+    st.info("Communicate with leads (Email/SMS coming soon).")
 
 # TAB 6: Analytics
 with tab6:
     st.header("📊 Analytics")
     st.metric("Total Leads", len(st.session_state.leads))
-    st.metric("Jobs Booked", len([x for x in st.session_state.leads.get("Status", []) if x == "Booked"]))
 
 # TAB 7: Prompt Generator
 with tab7:
