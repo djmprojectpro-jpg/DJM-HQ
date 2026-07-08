@@ -29,6 +29,8 @@ st.sidebar.caption("Free Estimates • (272) 394-5428 (text preferred)")
 st.sidebar.caption("djmprojectpro@gmail.com • djmprojectpro.com")
 
 # === Google Sheets Connection ===
+SPREADSHEET_ID = "1pt5FX6y2lVXVcgqKaA-d6zlW37eZQXLz0DPslSRCCOY"
+
 @st.cache_resource
 def get_gspread_client():
     scope = [
@@ -41,28 +43,39 @@ def get_gspread_client():
     return gspread.authorize(creds)
 
 client = get_gspread_client()
-sheet = client.open("DJM LeadOps Hub - Data")
+spreadsheet = client.open_by_key(SPREADSHEET_ID)
 
-def load_sheet(sheet_name):
+def load_sheet(sheet_name, headers=None):
     try:
-        ws = sheet.worksheet(sheet_name)
+        ws = spreadsheet.worksheet(sheet_name)
         data = ws.get_all_records()
         return pd.DataFrame(data)
+    except gspread.exceptions.WorksheetNotFound:
+        st.warning(f"Sheet '{sheet_name}' not found. Creating it now...")
+        ws = spreadsheet.add_worksheet(title=sheet_name, rows=100, cols=20)
+        if headers:
+            ws.append_row(headers)
+        return pd.DataFrame(columns=headers) if headers else pd.DataFrame()
     except Exception as e:
-        st.error(f"Error loading {sheet_name}: {e}")
+        st.error(f"Error loading sheet '{sheet_name}': {e}")
         return pd.DataFrame()
 
 def save_sheet(sheet_name, df):
     try:
-        ws = sheet.worksheet(sheet_name)
+        ws = spreadsheet.worksheet(sheet_name)
         ws.clear()
-        ws.update([df.columns.values.tolist()] + df.values.tolist())
+        if not df.empty:
+            ws.update([df.columns.values.tolist()] + df.values.tolist())
     except Exception as e:
-        st.error(f"Error saving to {sheet_name}: {e}")
+        st.error(f"Error saving to '{sheet_name}': {e}")
 
-# Load data
-leads_df = load_sheet("Leads")
-jobs_df = load_sheet("Jobs")
+# Define expected headers
+LEADS_HEADERS = ["Date", "Platform", "Client", "Location", "Phone", "Need", "Status"]
+JOBS_HEADERS = ["Job ID", "Client", "Service", "Location", "Value", "Status", "Date Booked"]
+
+# Load data with error handling
+leads_df = load_sheet("Leads", LEADS_HEADERS)
+jobs_df = load_sheet("Jobs", JOBS_HEADERS)
 
 # === TABS ===
 tab1, tab2, tab3, tab4, tab5, tab6, tab7, tab8, tab9 = st.tabs([
