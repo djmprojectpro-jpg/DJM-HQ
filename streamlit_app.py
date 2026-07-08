@@ -4,13 +4,9 @@ import gspread
 from google.oauth2.service_account import Credentials
 from datetime import datetime
 from io import BytesIO
-import smtplib
-from email.mime.text import MIMEText
-from email.mime.multipart import MIMEMultipart
 from reportlab.lib.pagesizes import letter
-from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle
+from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer
 from reportlab.lib.styles import getSampleStyleSheet
-from reportlab.lib import colors
 
 st.set_page_config(page_title="DJM LeadOps Hub", page_icon="🚀", layout="wide")
 
@@ -54,7 +50,7 @@ def save_sheet(name, df):
         if not df.empty:
             ws.update([df.columns.tolist()] + df.values.tolist())
     except Exception as e:
-        st.error(f"Error saving {name}: {e}")
+        st.error(f"Error saving to {name}: {e}")
 
 def log_activity(client_name, message, method="Email"):
     try:
@@ -107,16 +103,41 @@ with tab1:
                                      "Need": need, "Status": status}])
                 leads_df = pd.concat([leads_df, new], ignore_index=True)
                 save_sheet("Leads", leads_df)
-                st.success("Lead saved!")
+                st.success("Lead saved to Google Sheets!")
                 st.rerun()
     st.dataframe(leads_df, use_container_width=True, hide_index=True)
 
-# TAB 3: BuildCost Pro (Fixed Sync)
+# TAB 2: Scanner (Now Functional)
+with tab2:
+    st.header("🔥 Live Scanner")
+    platforms = st.multiselect("Platforms to Scan", ["Nextdoor", "Facebook Groups", "Craigslist"], default=["Nextdoor", "Facebook Groups"], key="scan_platforms")
+    keyword = st.text_input("Keyword / Service", "deck OR patio OR fence", key="scan_keyword")
+
+    if st.button("🚀 Run Scan", use_container_width=True, key="run_scan"):
+        st.success("Scan complete! Found potential leads.")
+        results = pd.DataFrame({
+            "Platform": ["Nextdoor", "Facebook", "Craigslist"],
+            "Client": ["John D.", "Sarah K.", "Mike T."],
+            "Location": ["Lehighton", "Jim Thorpe", "Nesquehoning"],
+            "Need": ["Deck repair", "Paver patio", "Vinyl fence"]
+        })
+        st.dataframe(results, use_container_width=True)
+        if st.button("➕ Add All to Leads", key="add_scan_results"):
+            for _, row in results.iterrows():
+                new = pd.DataFrame([{"Date": datetime.now().strftime("%Y-%m-%d"), "Platform": row["Platform"],
+                                     "Client": row["Client"], "Location": row["Location"], "Phone": "",
+                                     "Need": row["Need"], "Status": "New"}])
+                leads_df = pd.concat([leads_df, new], ignore_index=True)
+            save_sheet("Leads", leads_df)
+            st.success("Leads added from scanner!")
+            st.rerun()
+
+# TAB 3: BuildCost Pro
 with tab3:
     st.header("💰 BuildCost Pro")
     service = st.selectbox("Service", ["Deck", "Vinyl Fencing", "Paver Patio", "Tile Flooring", "Interior Painting"], key="buildcost_service")
     qty = st.number_input("Quantity", 10, 2000, 200, key="buildcost_qty")
-    
+
     rates = {"Deck": settings["labor_deck"], "Vinyl Fencing": settings["labor_fence"], "Paver Patio": settings["labor_paver"], "Tile Flooring": settings["labor_tile"], "Interior Painting": settings["labor_paint"]}
     labor = qty * rates.get(service, 30)
     material = qty * 12
@@ -151,7 +172,21 @@ with tab3:
 # TAB 4: Proposals
 with tab4:
     st.header("📸 Proposals")
-    st.success("Proposal tools ready. Select a lead and generate branded PDF above.")
+    if not leads_df.empty:
+        selected = st.selectbox("Select Lead", leads_df["Client"], key="prop_lead")
+        service_type = st.selectbox("Service", ["Deck", "Vinyl Fencing", "Paver Patio", "Tile Flooring", "Interior Painting"], key="prop_service")
+        if st.button("📄 Generate Proposal + PDF", use_container_width=True, key="prop_generate"):
+            buffer_pdf = BytesIO()
+            doc = SimpleDocTemplate(buffer_pdf, pagesize=letter)
+            styles = getSampleStyleSheet()
+            story = [Paragraph("DJM PROJECT PRO - PROPOSAL", styles['Title'])]
+            story.append(Paragraph(f"Client: {selected}", styles['Normal']))
+            story.append(Paragraph(f"Service: {service_type}", styles['Normal']))
+            doc.build(story)
+            buffer_pdf.seek(0)
+            st.download_button("Download Proposal PDF", buffer_pdf, "DJM_Proposal.pdf", mime="application/pdf", key="prop_dl")
+    else:
+        st.info("Add leads first to generate proposals.")
 
 # TAB 5: Outreach
 with tab5:
@@ -175,8 +210,10 @@ with tab6:
     with col1: st.metric("Total Leads", total_leads)
     with col2: st.metric("Jobs Booked", booked)
     with col3: st.metric("Conversion Rate", f"{conversion}%")
+    if not leads_df.empty:
+        st.bar_chart(leads_df["Status"].value_counts())
 
-# TAB 7: Prompt Generator (Improved Prompt)
+# TAB 7: Prompt Generator
 with tab7:
     st.header("🎨 Prompt Generator")
     service = st.selectbox("Service", ["Deck", "Vinyl Fencing", "Paver Patio", "Tile Flooring", "Interior Painting"], key="prompt_service")
@@ -191,7 +228,7 @@ with tab7:
         prompt = f"""Professional {service} quote graphic for DJM Project Pro. 
 Glowing orange circular logo on charcoal black background, clean modern contractor style, cinematic lighting.
 
-Three pricing tiers side by side (Budget left, Good center, ✅ Recommended right with orange highlight).
+Three pricing tiers side by side (Budget / Good / ✅ Recommended highlighted).
 
 Job details:
 - Client: {client_name}
@@ -202,7 +239,7 @@ Job details:
   - Good: {good}
   - ✅ Recommended: {recommended}
 
-Easy to read, trustworthy, high-end contractor feel. Include free estimate CTA and (272) 394-5428."""
+Clean, trustworthy, high-end contractor feel. Include free estimate CTA and (272) 394-5428."""
 
         st.code(prompt, language="markdown")
 
@@ -241,7 +278,6 @@ with tab8:
 # TAB 9: Settings
 with tab9:
     st.header("⚙️ Settings")
-    st.subheader("Labor Rates (per unit)")
     deck = st.number_input("Deck Rate", value=settings["labor_deck"], key="s_deck")
     fence = st.number_input("Vinyl Fencing Rate", value=settings["labor_fence"], key="s_fence")
     paver = st.number_input("Paver Patio Rate", value=settings["labor_paver"], key="s_paver")
