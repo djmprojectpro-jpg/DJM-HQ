@@ -55,21 +55,38 @@ def save_sheet(name, df):
     except Exception as e:
         st.error(f"Error saving {name}: {e}")
 
-def log_activity(client_name, message, method="Email"):
-    try:
-        ws = spreadsheet.worksheet("Activity Log")
-        ws.append_row([
-            datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-            client_name,
-            message[:250],
-            method,
-            "Sent"
-        ])
-    except:
-        pass
-
+# Load data
 leads_df = load_sheet("Leads")
 jobs_df = load_sheet("Jobs")
+
+# === Persistent Settings with Auto Sync ===
+def get_settings():
+    if "settings" not in st.session_state:
+        settings_df = load_sheet("Settings")
+        defaults = {
+            "labor_deck": 38,
+            "labor_fence": 33,
+            "labor_paver": 21,
+            "labor_tile": 14,
+            "labor_paint": 3.8,
+            "buffer": 0.12
+        }
+        if not settings_df.empty:
+            for _, row in settings_df.iterrows():
+                try:
+                    defaults[row["Setting"]] = float(row["Value"])
+                except:
+                    pass
+        st.session_state.settings = defaults
+    return st.session_state.settings
+
+settings = get_settings()
+
+def save_settings(new_settings):
+    df = pd.DataFrame([{"Setting": k, "Value": v} for k, v in new_settings.items()])
+    save_sheet("Settings", df)
+    st.session_state.settings = new_settings  # Update immediately
+    st.rerun()  # Auto sync across tabs
 
 # === TABS ===
 tab1, tab2, tab3, tab4, tab5, tab6, tab7, tab8, tab9 = st.tabs([
@@ -84,14 +101,14 @@ with tab1:
         with st.form("new_lead"):
             c1, c2 = st.columns(2)
             with c1:
-                platform = st.selectbox("Platform", ["Nextdoor", "Facebook", "Craigslist", "Google", "Referral"])
-                client = st.text_input("Client Name")
-                location = st.text_input("Location")
+                platform = st.selectbox("Platform", ["Nextdoor", "Facebook", "Craigslist", "Google", "Referral"], key="leads_platform")
+                client = st.text_input("Client Name", key="leads_client")
+                location = st.text_input("Location", key="leads_location")
             with c2:
-                phone = st.text_input("Phone")
-                need = st.text_input("Need")
-                status = st.selectbox("Status", ["New", "Contacted", "Quoted", "Booked", "Lost"])
-            if st.form_submit_button("Add Lead"):
+                phone = st.text_input("Phone", key="leads_phone")
+                need = st.text_input("Need", key="leads_need")
+                status = st.selectbox("Status", ["New", "Contacted", "Quoted", "Booked", "Lost"], key="leads_status")
+            if st.form_submit_button("Add Lead", key="leads_add"):
                 new = pd.DataFrame([{"Date": datetime.now().strftime("%Y-%m-%d"), "Platform": platform,
                                      "Client": client, "Location": location, "Phone": phone,
                                      "Need": need, "Status": status}])
@@ -101,23 +118,31 @@ with tab1:
                 st.rerun()
     st.dataframe(leads_df, use_container_width=True, hide_index=True)
 
-# TAB 3: BuildCost Pro
+# TAB 3: BuildCost Pro (Uses live settings)
 with tab3:
     st.header("💰 BuildCost Pro")
-    service = st.selectbox("Service", ["Deck", "Vinyl Fencing", "Paver Patio", "Tile Flooring", "Interior Painting"])
-    qty = st.number_input("Quantity", 10, 2000, 200)
+    service = st.selectbox("Service", ["Deck", "Vinyl Fencing", "Paver Patio", "Tile Flooring", "Interior Painting"], key="buildcost_service")
+    qty = st.number_input("Quantity", 10, 2000, 200, key="buildcost_qty")
     
-    rates = {"Deck": 38, "Vinyl Fencing": 33, "Paver Patio": 21, "Tile Flooring": 14, "Interior Painting": 3.8}
+    # Always use latest settings
+    current_settings = get_settings()
+    rates = {
+        "Deck": current_settings["labor_deck"],
+        "Vinyl Fencing": current_settings["labor_fence"],
+        "Paver Patio": current_settings["labor_paver"],
+        "Tile Flooring": current_settings["labor_tile"],
+        "Interior Painting": current_settings["labor_paint"]
+    }
     labor = qty * rates.get(service, 30)
     material = qty * 12
-    buffer = (labor + material) * 0.12
+    buffer = (labor + material) * current_settings["buffer"]
     total = labor + material + buffer
 
     st.subheader("Cost Breakdown")
     col1, col2, col3 = st.columns(3)
     with col1: st.metric("Labor", f"${int(labor):,}")
     with col2: st.metric("Materials", f"${int(material):,}")
-    with col3: st.metric("Buffer (12%)", f"${int(buffer):,}")
+    with col3: st.metric("Buffer", f"${int(buffer):,}")
 
     st.subheader("Pricing Options")
     c1, c2, c3 = st.columns(3)
@@ -125,7 +150,7 @@ with tab3:
     with c2: st.metric("Good", f"${int(total):,}")
     with c3: st.metric("✅ Recommended", f"${int(total*1.08):,}")
 
-    if st.button("📥 Download PDF Quote", use_container_width=True):
+    if st.button("📥 Download PDF Quote", use_container_width=True, key="buildcost_pdf"):
         buffer_pdf = BytesIO()
         doc = SimpleDocTemplate(buffer_pdf, pagesize=letter)
         styles = getSampleStyleSheet()
@@ -133,24 +158,22 @@ with tab3:
         story.append(Paragraph(f"Service: {service} | Recommended Total: ${int(total*1.08):,}", styles['Normal']))
         doc.build(story)
         buffer_pdf.seek(0)
-        st.download_button("Download PDF", buffer_pdf, "DJM_Quote.pdf", mime="application/pdf")
+        st.download_button("Download PDF", buffer_pdf, "DJM_Quote.pdf", mime="application/pdf", key="buildcost_download")
 
-# TAB 5: Outreach (Real Email + Logging)
+# TAB 5: Outreach
 with tab5:
     st.header("📧 Outreach")
-    
     if not leads_df.empty:
-        selected_client = st.selectbox("Select Lead", leads_df["Client"])
-        template = st.selectbox("Template", ["New Lead Follow-up", "Quote Sent", "Booking Confirmation", "Custom"])
-        
-        default_msg = f"Hi {selected_client}, thank you for reaching out regarding your project. Let me know if you have any questions."
-        message = st.text_area("Message", default_msg)
+        selected_client = st.selectbox("Select Lead", leads_df["Client"], key="outreach_client")
+        template = st.selectbox("Template", ["New Lead Follow-up", "Quote Sent", "Booking Confirmation", "Custom"], key="outreach_template")
+        default_msg = f"Hi {selected_client}, thank you for reaching out regarding your project."
+        message = st.text_area("Message", default_msg, key="outreach_message")
 
-        if st.button("📧 Send Email & Log", use_container_width=True):
+        if st.button("📧 Send Email & Log", use_container_width=True, key="outreach_send"):
             try:
                 sender_email = st.secrets["email"]["sender_email"]
                 app_password = st.secrets["email"]["app_password"]
-                receiver_email = "djmprojectpro@gmail.com"  # ← Update this later with real client email
+                receiver_email = "djmprojectpro@gmail.com"
 
                 msg = MIMEMultipart()
                 msg['From'] = sender_email
@@ -166,14 +189,12 @@ with tab5:
 
                 st.success(f"Email sent to {selected_client}!")
                 log_activity(selected_client, message, "Email")
-
             except Exception as e:
                 st.error(f"Failed to send email: {e}")
-                log_activity(selected_client, message, "Email (Failed)")
     else:
-        st.info("Add leads first to use Outreach.")
+        st.info("Add leads first.")
 
-# TAB 6: Analytics (Advanced)
+# TAB 6: Analytics
 with tab6:
     st.header("📊 Analytics")
     total_leads = len(leads_df)
@@ -192,15 +213,15 @@ with tab6:
 # TAB 7: Prompt Generator
 with tab7:
     st.header("🎨 Prompt Generator")
-    service = st.selectbox("Service", ["Deck", "Vinyl Fencing", "Paver Patio", "Tile Flooring", "Interior Painting"])
-    client_name = st.text_input("Client Name")
-    location = st.text_input("Location")
-    size = st.text_input("Size / Quantity")
-    budget = st.text_input("Budget Price")
-    good = st.text_input("Good Price")
-    recommended = st.text_input("Recommended Price")
+    service = st.selectbox("Service", ["Deck", "Vinyl Fencing", "Paver Patio", "Tile Flooring", "Interior Painting"], key="prompt_service")
+    client_name = st.text_input("Client Name", key="prompt_client")
+    location = st.text_input("Location", key="prompt_location")
+    size = st.text_input("Size / Quantity", key="prompt_size")
+    budget = st.text_input("Budget Price", key="prompt_budget")
+    good = st.text_input("Good Price", key="prompt_good")
+    recommended = st.text_input("Recommended Price", key="prompt_recommended")
 
-    if st.button("🚀 Generate Prompt & PDF", use_container_width=True):
+    if st.button("🚀 Generate Prompt & PDF", use_container_width=True, key="prompt_generate"):
         prompt = f"""Professional {service} quote graphic for DJM Project Pro.
 Glowing orange circular logo on charcoal black background.
 
@@ -225,14 +246,14 @@ Clean, trustworthy contractor style. Include (272) 394-5428."""
         story.append(Paragraph(f"Recommended Total: {recommended}", styles['Normal']))
         doc.build(story)
         buffer_pdf.seek(0)
-        st.download_button("📥 Download PDF Quote", buffer_pdf, "DJM_Quote.pdf", mime="application/pdf")
+        st.download_button("📥 Download PDF Quote", buffer_pdf, "DJM_Quote.pdf", mime="application/pdf", key="prompt_download")
 
 # TAB 8: Jobs
 with tab8:
     st.header("🛠️ Jobs / Active Projects")
     st.dataframe(jobs_df, use_container_width=True, hide_index=True)
 
-    if st.button("🔄 Move Booked Leads to Jobs"):
+    if st.button("🔄 Move Booked Leads to Jobs", key="jobs_move"):
         booked = leads_df[leads_df["Status"] == "Booked"]
         for _, row in booked.iterrows():
             new_job = pd.DataFrame([{
@@ -249,10 +270,29 @@ with tab8:
         st.success(f"Moved {len(booked)} leads to Jobs!")
         st.rerun()
 
-# Other tabs
-with tab2: st.header("🔥 Live Scanner")
-with tab4: st.header("📸 Proposals")
-with tab9: st.header("⚙️ Settings")
+# TAB 9: Settings (Auto Sync)
+with tab9:
+    st.header("⚙️ Settings")
+    st.subheader("Labor Rates (per unit)")
 
+    deck = st.number_input("Deck Rate", value=settings["labor_deck"], key="set_deck")
+    fence = st.number_input("Vinyl Fencing Rate", value=settings["labor_fence"], key="set_fence")
+    paver = st.number_input("Paver Patio Rate", value=settings["labor_paver"], key="set_paver")
+    tile = st.number_input("Tile Flooring Rate", value=settings["labor_tile"], key="set_tile")
+    paint = st.number_input("Interior Painting Rate", value=settings["labor_paint"], key="set_paint")
+    buf = st.slider("Buffer %", 5, 20, int(settings["buffer"] * 100), key="set_buffer")
+
+    if st.button("💾 Save Settings", key="settings_save"):
+        new_settings = {
+            "labor_deck": deck,
+            "labor_fence": fence,
+            "labor_paver": paver,
+            "labor_tile": tile,
+            "labor_paint": paint,
+            "buffer": buf / 100
+        }
+        save_settings(new_settings)  # Auto sync + rerun
+
+# Footer
 st.divider()
 st.caption("DJM Project Pro • Licensed & Insured in Pennsylvania • (272) 394-5428")
