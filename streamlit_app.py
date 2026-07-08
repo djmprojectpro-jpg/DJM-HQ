@@ -5,9 +5,8 @@ from google.oauth2.service_account import Credentials
 from datetime import datetime
 from io import BytesIO
 from reportlab.lib.pagesizes import letter
-from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle
+from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer
 from reportlab.lib.styles import getSampleStyleSheet
-from reportlab.lib import colors
 
 st.set_page_config(page_title="DJM LeadOps Hub", page_icon="🚀", layout="wide")
 
@@ -62,9 +61,10 @@ tab1, tab2, tab3, tab4, tab5, tab6, tab7, tab8, tab9 = st.tabs([
     "📧 Outreach", "📊 Analytics", "🎨 Prompts", "🛠️ Jobs", "⚙️ Settings"
 ])
 
-# TAB 1: Leads
+# TAB 1: Leads (with Migration Logic)
 with tab1:
     st.header("📍 Leads")
+
     with st.expander("➕ Add New Lead"):
         with st.form("new_lead"):
             c1, c2 = st.columns(2)
@@ -82,96 +82,60 @@ with tab1:
                                      "Need": need, "Status": status}])
                 leads_df = pd.concat([leads_df, new], ignore_index=True)
                 save_sheet("Leads", leads_df)
-                st.success("Lead added and saved!")
+                st.success("Lead added!")
                 st.rerun()
+
     st.dataframe(leads_df, use_container_width=True, hide_index=True)
 
-# TAB 3: BuildCost Pro (Advanced)
-with tab3:
-    st.header("💰 BuildCost Pro")
-    service = st.selectbox("Service", ["Deck", "Vinyl Fencing", "Paver Patio", "Tile Flooring", "Interior Painting"])
-    qty = st.number_input("Quantity", 10, 2000, 200)
-    
-    rates = {"Deck": 38, "Vinyl Fencing": 33, "Paver Patio": 21, "Tile Flooring": 14, "Interior Painting": 3.8}
-    labor = qty * rates.get(service, 30)
-    material = qty * 12
-    buffer = (labor + material) * 0.12
-    total = labor + material + buffer
+    # === Lead to Job Migration ===
+    st.subheader("🔄 Convert Booked Lead to Job")
+    booked_leads = leads_df[leads_df["Status"] == "Booked"]
 
-    st.subheader("Cost Breakdown")
-    col1, col2, col3 = st.columns(3)
-    with col1: st.metric("Labor", f"${int(labor):,}")
-    with col2: st.metric("Materials", f"${int(material):,}")
-    with col3: st.metric("Buffer (12%)", f"${int(buffer):,}")
+    if not booked_leads.empty:
+        selected_idx = st.selectbox("Select Booked Lead to Convert", booked_leads.index)
+        selected_lead = booked_leads.loc[selected_idx]
 
-    st.subheader("Pricing Options")
-    c1, c2, c3 = st.columns(3)
-    with c1: st.metric("Budget", f"${int(total*0.92):,}")
-    with c2: st.metric("Good", f"${int(total):,}")
-    with c3: st.metric("✅ Recommended", f"${int(total*1.08):,}")
+        with st.form("convert_to_job"):
+            service = st.selectbox("Service Type", ["Deck", "Vinyl Fencing", "Paver Patio", "Tile Flooring", "Interior Painting"])
+            value = st.number_input("Estimated Job Value ($)", min_value=0, value=5000)
+            notes = st.text_area("Notes (optional)")
 
-    if st.button("📥 Download PDF Quote", use_container_width=True):
-        buffer_pdf = BytesIO()
-        doc = SimpleDocTemplate(buffer_pdf, pagesize=letter)
-        styles = getSampleStyleSheet()
-        story = [Paragraph("DJM PROJECT PRO - QUOTE", styles['Title'])]
-        story.append(Paragraph(f"Service: {service} | Recommended Total: ${int(total*1.08):,}", styles['Normal']))
-        doc.build(story)
-        buffer_pdf.seek(0)
-        st.download_button("Download PDF", buffer_pdf, "DJM_Quote.pdf", mime="application/pdf")
+            if st.form_submit_button("Convert to Job"):
+                # Create new job
+                new_job = pd.DataFrame([{
+                    "Job ID": f"JOB-{datetime.now().strftime('%Y%m%d%H%M')}",
+                    "Client": selected_lead["Client"],
+                    "Service": service,
+                    "Location": selected_lead["Location"],
+                    "Value": value,
+                    "Status": "Scheduled",
+                    "Date Booked": datetime.now().strftime("%Y-%m-%d"),
+                    "Notes": notes
+                }])
+                jobs_df = pd.concat([jobs_df, new_job], ignore_index=True)
+                save_sheet("Jobs", jobs_df)
 
-# TAB 7: Prompt Generator (Advanced)
-with tab7:
-    st.header("🎨 Prompt Generator")
-    service = st.selectbox("Service", ["Deck", "Vinyl Fencing", "Paver Patio", "Tile Flooring", "Interior Painting"])
-    client_name = st.text_input("Client Name")
-    location = st.text_input("Location")
-    size = st.text_input("Size / Quantity")
-    budget = st.text_input("Budget Price")
-    good = st.text_input("Good Price")
-    recommended = st.text_input("Recommended Price")
+                # Update lead status
+                leads_df.loc[selected_idx, "Status"] = "Converted to Job"
+                save_sheet("Leads", leads_df)
 
-    if st.button("🚀 Generate Prompt & PDF", use_container_width=True):
-        prompt = f"""Professional {service} quote graphic for DJM Project Pro. 
-Glowing orange circular logo on charcoal black background, clean modern contractor style.
-
-Job details:
-- Client: {client_name}
-- Location: {location}
-- Size: {size}
-- Pricing:
-  - Budget: {budget}
-  - Good: {good}
-  - ✅ Recommended: {recommended}
-
-Clean, trustworthy, high-end contractor feel. Include free estimate CTA and (272) 394-5428."""
-
-        st.code(prompt, language="markdown")
-
-        # Generate PDF
-        buffer_pdf = BytesIO()
-        doc = SimpleDocTemplate(buffer_pdf, pagesize=letter)
-        styles = getSampleStyleSheet()
-        story = [Paragraph("DJM PROJECT PRO - QUOTE", styles['Title'])]
-        story.append(Paragraph(f"Service: {service} | Client: {client_name}", styles['Normal']))
-        story.append(Paragraph(f"Recommended Total: {recommended}", styles['Normal']))
-        doc.build(story)
-        buffer_pdf.seek(0)
-        st.download_button("📥 Download PDF Quote", buffer_pdf, "DJM_Quote.pdf", mime="application/pdf")
+                st.success(f"Lead for {selected_lead['Client']} converted to Job!")
+                st.rerun()
+    else:
+        st.info("No booked leads available to convert.")
 
 # TAB 8: Jobs (Improved)
 with tab8:
     st.header("🛠️ Jobs / Active Projects")
     st.dataframe(jobs_df, use_container_width=True, hide_index=True)
-    if st.button("🔄 Refresh Jobs from Leads (Booked)"):
-        booked = leads_df[leads_df["Status"] == "Booked"]
-        st.info(f"Found {len(booked)} booked leads. (Feature under development)")
 
 # Other tabs
 with tab2: st.header("🔥 Live Scanner")
+with tab3: st.header("💰 BuildCost")
 with tab4: st.header("📸 Proposals")
 with tab5: st.header("📧 Outreach")
 with tab6: st.header("📊 Analytics")
+with tab7: st.header("🎨 Prompt Generator")
 with tab9: st.header("⚙️ Settings")
 
 st.divider()
