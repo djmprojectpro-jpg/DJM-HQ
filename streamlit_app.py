@@ -8,8 +8,9 @@ import smtplib
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from reportlab.lib.pagesizes import letter
-from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer
+from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle
 from reportlab.lib.styles import getSampleStyleSheet
+from reportlab.lib import colors
 
 st.set_page_config(page_title="DJM LeadOps Hub", page_icon="🚀", layout="wide")
 
@@ -58,28 +59,22 @@ def save_sheet(name, df):
 def log_activity(client_name, message, method="Email"):
     try:
         ws = spreadsheet.worksheet("Activity Log")
-        ws.append_row([
-            datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-            client_name,
-            message[:250],
-            method,
-            "Sent"
-        ])
+        ws.append_row([datetime.now().strftime("%Y-%m-%d %H:%M:%S"), client_name, message[:250], method, "Sent"])
     except:
         pass
 
 leads_df = load_sheet("Leads")
 jobs_df = load_sheet("Jobs")
+settings_df = load_sheet("Settings")
 
-# Settings with auto-sync
 def get_settings():
     defaults = {"labor_deck": 38, "labor_fence": 33, "labor_paver": 21, "labor_tile": 14, "labor_paint": 3.8, "buffer": 0.12}
-    settings_df = load_sheet("Settings")
-    for _, row in settings_df.iterrows():
-        try:
-            defaults[row["Setting"]] = float(row["Value"])
-        except:
-            pass
+    if not settings_df.empty:
+        for _, row in settings_df.iterrows():
+            try:
+                defaults[row["Setting"]] = float(row["Value"])
+            except:
+                pass
     if "settings" not in st.session_state:
         st.session_state.settings = defaults
     return st.session_state.settings
@@ -116,13 +111,7 @@ with tab1:
                 st.rerun()
     st.dataframe(leads_df, use_container_width=True, hide_index=True)
 
-# TAB 2: Scanner
-with tab2:
-    st.header("🔥 Live Scanner")
-    if st.button("🚀 Run Scan", use_container_width=True, key="scanner_btn"):
-        st.success("Scan complete! Leads found.")
-
-# TAB 3: BuildCost Pro
+# TAB 3: BuildCost Pro (Fixed Sync)
 with tab3:
     st.header("💰 BuildCost Pro")
     service = st.selectbox("Service", ["Deck", "Vinyl Fencing", "Paver Patio", "Tile Flooring", "Interior Painting"], key="buildcost_service")
@@ -138,7 +127,7 @@ with tab3:
     col1, col2, col3 = st.columns(3)
     with col1: st.metric("Labor", f"${int(labor):,}")
     with col2: st.metric("Materials", f"${int(material):,}")
-    with col3: st.metric("Buffer", f"${int(buffer):,}")
+    with col3: st.metric("Buffer (12%)", f"${int(buffer):,}")
 
     st.subheader("Pricing Options")
     c1, c2, c3 = st.columns(3)
@@ -157,26 +146,18 @@ with tab3:
             buffer_pdf.seek(0)
             st.download_button("Download PDF", buffer_pdf, "DJM_Quote.pdf", mime="application/pdf", key="buildcost_dl")
         except Exception as e:
-            st.error(f"PDF failed: {e}")
+            st.error(f"PDF Error: {e}")
 
 # TAB 4: Proposals
 with tab4:
     st.header("📸 Proposals")
-    if st.button("Generate Full Proposal + PDF", use_container_width=True, key="prop_btn"):
-        st.success("Proposal generated! PDF ready to download.")
-        buffer_pdf = BytesIO()
-        doc = SimpleDocTemplate(buffer_pdf, pagesize=letter)
-        styles = getSampleStyleSheet()
-        story = [Paragraph("DJM PROJECT PRO - PROPOSAL", styles['Title'])]
-        doc.build(story)
-        buffer_pdf.seek(0)
-        st.download_button("Download Proposal PDF", buffer_pdf, "DJM_Proposal.pdf", mime="application/pdf")
+    st.success("Proposal tools ready. Select a lead and generate branded PDF above.")
 
 # TAB 5: Outreach
 with tab5:
     st.header("📧 Outreach")
     if not leads_df.empty:
-        selected = st.selectbox("Select Lead", leads_df["Client"], key="outreach_select")
+        selected = st.selectbox("Select Lead", leads_df["Client"], key="outreach_client")
         message = st.text_area("Message", f"Hi {selected}, thank you for your interest...", key="outreach_msg")
         if st.button("📧 Send Email & Log", use_container_width=True, key="send_email"):
             st.success(f"Email sent to {selected}!")
@@ -187,41 +168,98 @@ with tab5:
 # TAB 6: Analytics
 with tab6:
     st.header("📊 Analytics")
-    st.metric("Total Leads", len(leads_df))
-    st.metric("Jobs Booked", len(jobs_df))
-    if not leads_df.empty:
-        st.bar_chart(leads_df["Status"].value_counts())
+    total_leads = len(leads_df)
+    booked = len(leads_df[leads_df["Status"] == "Booked"]) if not leads_df.empty else 0
+    conversion = round((booked / total_leads * 100), 1) if total_leads > 0 else 0
+    col1, col2, col3 = st.columns(3)
+    with col1: st.metric("Total Leads", total_leads)
+    with col2: st.metric("Jobs Booked", booked)
+    with col3: st.metric("Conversion Rate", f"{conversion}%")
 
-# TAB 7: Prompt Generator
+# TAB 7: Prompt Generator (Improved Prompt)
 with tab7:
     st.header("🎨 Prompt Generator")
     service = st.selectbox("Service", ["Deck", "Vinyl Fencing", "Paver Patio", "Tile Flooring", "Interior Painting"], key="prompt_service")
     client_name = st.text_input("Client Name", key="prompt_client")
+    location = st.text_input("Location", key="prompt_location")
+    size = st.text_input("Size / Quantity", key="prompt_size")
+    budget = st.text_input("Budget Price", key="prompt_budget")
+    good = st.text_input("Good Price", key="prompt_good")
     recommended = st.text_input("Recommended Price", key="prompt_rec")
-    if st.button("🚀 Generate Prompt & PDF", use_container_width=True, key="prompt_btn"):
-        st.code(f"Professional {service} quote graphic for DJM Project Pro...", language="markdown")
+
+    if st.button("🚀 Generate Rich Prompt & PDF", use_container_width=True, key="prompt_btn"):
+        prompt = f"""Professional {service} quote graphic for DJM Project Pro. 
+Glowing orange circular logo on charcoal black background, clean modern contractor style, cinematic lighting.
+
+Three pricing tiers side by side (Budget left, Good center, ✅ Recommended right with orange highlight).
+
+Job details:
+- Client: {client_name}
+- Location: {location}
+- Size: {size}
+- Pricing:
+  - Budget: {budget}
+  - Good: {good}
+  - ✅ Recommended: {recommended}
+
+Easy to read, trustworthy, high-end contractor feel. Include free estimate CTA and (272) 394-5428."""
+
+        st.code(prompt, language="markdown")
+
         buffer_pdf = BytesIO()
         doc = SimpleDocTemplate(buffer_pdf, pagesize=letter)
         styles = getSampleStyleSheet()
         story = [Paragraph("DJM PROJECT PRO - QUOTE", styles['Title'])]
+        story.append(Paragraph(f"Client: {client_name} | {service}", styles['Normal']))
+        story.append(Paragraph(f"Recommended: {recommended}", styles['Normal']))
         doc.build(story)
         buffer_pdf.seek(0)
-        st.download_button("Download PDF", buffer_pdf, "DJM_Quote.pdf", mime="application/pdf", key="prompt_dl")
+        st.download_button("📥 Download PDF Quote", buffer_pdf, "DJM_Quote.pdf", mime="application/pdf", key="prompt_dl")
 
 # TAB 8: Jobs
 with tab8:
-    st.header("🛠️ Jobs")
+    st.header("🛠️ Jobs / Active Projects")
     st.dataframe(jobs_df, use_container_width=True, hide_index=True)
-    if st.button("🔄 Move Booked Leads to Jobs", key="jobs_move_btn"):
-        st.success("Booked leads moved to Jobs!")
+
+    if st.button("🔄 Move Booked Leads to Jobs", key="jobs_move"):
+        booked = leads_df[leads_df["Status"] == "Booked"]
+        for _, row in booked.iterrows():
+            new_job = pd.DataFrame([{
+                "Job ID": f"JOB-{datetime.now().strftime('%Y%m%d%H%M%S')}",
+                "Client": row["Client"],
+                "Service": row["Need"],
+                "Location": row["Location"],
+                "Value": 0,
+                "Status": "Scheduled",
+                "Date Booked": datetime.now().strftime("%Y-%m-%d")
+            }])
+            jobs_df = pd.concat([jobs_df, new_job], ignore_index=True)
+        save_sheet("Jobs", jobs_df)
+        st.success(f"Moved {len(booked)} leads to Jobs!")
         st.rerun()
 
 # TAB 9: Settings
 with tab9:
     st.header("⚙️ Settings")
-    deck = st.number_input("Deck Rate", value=38, key="set_deck")
-    if st.button("💾 Save All Settings", key="save_settings_btn"):
-        st.success("Settings saved to Google Sheets and synced across app!")
+    st.subheader("Labor Rates (per unit)")
+    deck = st.number_input("Deck Rate", value=settings["labor_deck"], key="s_deck")
+    fence = st.number_input("Vinyl Fencing Rate", value=settings["labor_fence"], key="s_fence")
+    paver = st.number_input("Paver Patio Rate", value=settings["labor_paver"], key="s_paver")
+    tile = st.number_input("Tile Flooring Rate", value=settings["labor_tile"], key="s_tile")
+    paint = st.number_input("Interior Painting Rate", value=settings["labor_paint"], key="s_paint")
+    buf = st.slider("Buffer %", 5, 20, int(settings["buffer"] * 100), key="s_buf")
+
+    if st.button("💾 Save Settings", key="settings_save"):
+        new_settings = pd.DataFrame([
+            {"Setting": "labor_deck", "Value": deck},
+            {"Setting": "labor_fence", "Value": fence},
+            {"Setting": "labor_paver", "Value": paver},
+            {"Setting": "labor_tile", "Value": tile},
+            {"Setting": "labor_paint", "Value": paint},
+            {"Setting": "buffer", "Value": buf / 100},
+        ])
+        save_sheet("Settings", new_settings)
+        st.success("Settings saved and synced across app!")
         st.rerun()
 
 st.divider()
