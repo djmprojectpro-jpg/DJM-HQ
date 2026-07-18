@@ -429,4 +429,4 @@ with tab_photos:
 
 # --- MATERIALS ---
 with tab_materials:
-    st.header("Current Material Prices (Carbon Co
+    st.header("Current Material Prices (Carbon County)", divider="orange")
