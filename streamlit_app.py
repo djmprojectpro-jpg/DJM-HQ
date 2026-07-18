@@ -46,7 +46,7 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # ==================== DATABASE ====================
-DB_PATH = "/home/workdir/artifacts/djm_ops_hub.db"
+DB_PATH = "djm_ops_hub.db"  # Relative path works on Streamlit Cloud
 
 def init_database():
     conn = sqlite3.connect(DB_PATH)
@@ -429,4 +429,4 @@ with tab_photos:
 
 # --- MATERIALS ---
 with tab_materials:
-    st.header("Current Material Prices (Carbon County)", divider="orange")
+    st.header("Current Material
