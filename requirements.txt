@@ -1,3 +1,6 @@
 streamlit>=1.28.0
 pandas>=2.0.0
-# Add more as needed: e.g. plotly, pillow, fpdf2 for PDF export later
+plotly>=5.0.0
+reportlab>=4.0.0
+stripe>=9.0.0
+# Added Stripe for deposit collection directly from quotes
