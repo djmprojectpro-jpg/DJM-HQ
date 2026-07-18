@@ -128,7 +128,7 @@ st.markdown("""
 # Header
 col_logo, col_info = st.columns([4, 3])
 with col_logo:
-st.title("DJM Project Pro's HQ")
+    st.title("DJM Project Pro's HQ")
     st.caption("Quality Craftsmanship â€¢ Carbon County, PA â€¢ AI-Powered Ops")
 with col_info:
     st.markdown("**Licensed & Insured in Pennsylvania**")
