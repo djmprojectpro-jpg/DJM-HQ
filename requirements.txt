@@ -1,6 +1,3 @@
-streamlit
-pandas
-requests
-gspread
-google-auth
-reportlab
+streamlit>=1.28.0
+pandas>=2.0.0
+# Add more as needed: e.g. plotly, pillow, fpdf2 for PDF export later
